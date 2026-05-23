@@ -1,0 +1,8 @@
+venv/
+data/
+memory/db/
+chroma_db/
+.streamlit/
+__pycache__/
+*.pyc
+debug.py

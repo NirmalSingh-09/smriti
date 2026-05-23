@@ -1,0 +1,6 @@
+streamlit
+chromadb
+groq
+pandas
+emoji
+sentence-transformers
