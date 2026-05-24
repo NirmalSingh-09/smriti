@@ -132,7 +132,6 @@ if "personality" not in st.session_state:
 if "collection" not in st.session_state:
     st.session_state.collection = None
 
-embedding_fn = ONNXMiniLM_L6_V2()
 
 @st.cache_resource
 def load_model():
