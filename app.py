@@ -14,7 +14,18 @@ st.set_page_config(
     page_icon="🌸",
     layout="wide"
 )
-
+st.markdown("""
+<style>
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+    }
+    section[data-testid="stSidebar"] {
+        display: block !important;
+        visibility: visible !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 # ── CSS ──────────────────────────────────────────────────
 st.markdown("""
 <style>
