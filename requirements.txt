@@ -1,7 +1,6 @@
 streamlit
-chromadb==0.5.23
 groq
 pandas
 emoji
-numpy==1.26.4
-onnxruntime
+numpy
+scikit-learn

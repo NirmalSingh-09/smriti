@@ -1,10 +1,10 @@
-import chromadb
 import json
+import pickle
+import os
 import pandas as pd
-from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from parser.whatsapp_parser import parse_whatsapp_chat
-
-embedding_fn = ONNXMiniLM_L6_V2()
 
 def build_memory(chat_file, target_person, personality_file):
     print("\n🧠 Building Smriti memory bank...")
@@ -13,42 +13,31 @@ def build_memory(chat_file, target_person, personality_file):
         personality = json.load(f)
 
     df = parse_whatsapp_chat(chat_file, target_person)
-    messages = df['message'].tolist()
+    messages = [m for m in df['message'].tolist() if len(m.split()) >= 3]
 
-    meaningful = [m for m in messages if len(m.split()) >= 3]
-    print(f"📝 Storing {len(meaningful)} meaningful messages in memory...")
+    print(f"📝 Storing {len(messages)} meaningful messages...")
 
-    client = chromadb.PersistentClient(path="memory/db")
+    vectorizer = TfidfVectorizer(max_features=5000)
+    matrix = vectorizer.fit_transform(messages)
 
-    try:
-        client.delete_collection("smriti_memory")
-    except:
-        pass
+    os.makedirs("memory", exist_ok=True)
+    with open("memory/messages.pkl", "wb") as f:
+        pickle.dump(messages, f)
+    with open("memory/vectorizer.pkl", "wb") as f:
+        pickle.dump(vectorizer, f)
+    with open("memory/matrix.pkl", "wb") as f:
+        pickle.dump(matrix, f)
 
-    collection = client.create_collection(
-        name="smriti_memory",
-        metadata={"hnsw:space": "cosine"},
-        embedding_function=embedding_fn
-    )
-
-    batch_size = 100
-    for i in range(0, len(meaningful), batch_size):
-        batch = meaningful[i:i+batch_size]
-        collection.add(
-            documents=batch,
-            ids=[f"msg_{i+j}" for j in range(len(batch))],
-            metadatas=[{"source": target_person} for _ in batch]
-        )
-
-    print(f"✅ Memory bank built — {len(meaningful)} messages stored!")
-    print(f"📁 Saved to memory/db/")
-
-    return collection, personality
+    print(f"✅ Memory bank built — {len(messages)} messages stored!")
+    return {"messages": messages, "vectorizer": vectorizer, "matrix": matrix}, personality
 
 
 def search_memory(query, collection, n_results=3):
-    results = collection.query(
-        query_texts=[query],
-        n_results=n_results
-    )
-    return results['documents'][0] if results['documents'] else []
+    messages = collection["messages"]
+    vectorizer = collection["vectorizer"]
+    matrix = collection["matrix"]
+
+    query_vec = vectorizer.transform([query])
+    scores = cosine_similarity(query_vec, matrix).flatten()
+    top_indices = scores.argsort()[-n_results:][::-1]
+    return [messages[i] for i in top_indices]

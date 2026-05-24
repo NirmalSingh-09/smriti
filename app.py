@@ -1,8 +1,7 @@
 import streamlit as st
 import json
 import os
-import chromadb
-from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
+import pickle
 from memory.vector_store import build_memory, search_memory
 from ai.responder import setup_gemini, generate_response
 from parser.whatsapp_parser import parse_whatsapp_chat
@@ -203,30 +202,28 @@ with st.sidebar:
                 with open("data/personality_profile.json", 'w', encoding='utf-8') as f:
                     json.dump(profile, f, ensure_ascii=False, indent=2)
 
-                import chromadb as cb
-                client = cb.PersistentClient(path="memory/db")
-                try:
-                    client.delete_collection("smriti_memory")
-                except:
-                    pass
-
-                collection = client.create_collection(
-                    name="smriti_memory",
-                    metadata={"hnsw:space": "cosine"},
-                    embedding_function=embedding_fn
-                )
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                import pickle
 
                 messages_list = df['message'].tolist()
                 meaningful = [m for m in messages_list if len(m.split()) >= 3]
 
-                batch_size = 100
-                for i in range(0, len(meaningful), batch_size):
-                    batch = meaningful[i:i+batch_size]
-                    collection.add(
-                        documents=batch,
-                        ids=[f"msg_{i+j}" for j in range(len(batch))],
-                        metadatas=[{"source": person_name} for _ in batch]
-                    )
+                vectorizer = TfidfVectorizer(max_features=5000)
+                matrix = vectorizer.fit_transform(meaningful)
+
+                os.makedirs("memory", exist_ok=True)
+                with open("memory/messages.pkl", "wb") as f:
+                    pickle.dump(meaningful, f)
+                with open("memory/vectorizer.pkl", "wb") as f:
+                    pickle.dump(vectorizer, f)
+                with open("memory/matrix.pkl", "wb") as f:
+                    pickle.dump(matrix, f)
+
+                collection = {
+                    "messages": meaningful,
+                    "vectorizer": vectorizer,
+                    "matrix": matrix
+                }
 
                 st.session_state.personality = profile
                 st.session_state.collection = collection
@@ -238,16 +235,21 @@ with st.sidebar:
     # Load existing if available
     if (not st.session_state.ready and
             os.path.exists("data/personality_profile.json") and
-            os.path.exists("memory/db")):
+            os.path.exists("memory/messages.pkl")):
         try:
             with open("data/personality_profile.json", 'r', encoding='utf-8') as f:
                 st.session_state.personality = json.load(f)
-            import chromadb as cb
-            client = cb.PersistentClient(path="memory/db")
-            st.session_state.collection = client.get_collection(
-                "smriti_memory",
-                embedding_function=embedding_fn
-            )
+            with open("memory/messages.pkl", "rb") as f:
+                messages = pickle.load(f)
+            with open("memory/vectorizer.pkl", "rb") as f:
+                vectorizer = pickle.load(f)
+            with open("memory/matrix.pkl", "rb") as f:
+                matrix = pickle.load(f)
+            st.session_state.collection = {
+                "messages": messages,
+                "vectorizer": vectorizer,
+                "matrix": matrix
+            }
             st.session_state.ready = True
         except:
             pass
