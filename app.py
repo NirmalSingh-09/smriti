@@ -334,6 +334,99 @@ with st.sidebar:
 # ── MAIN CHAT AREA ───────────────────────────────────────
 if not st.session_state.ready:
     st.markdown("""
+    <div style='text-align:center; padding: 40px 20px 20px 20px;'>
+        <div class='welcome-glow' style='font-size: 90px; margin-bottom: 25px;'>🌸</div>
+        <div style='font-size: 36px; font-weight: 700;
+                    background: linear-gradient(135deg, #ffffff, #7c6ff7);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin-bottom: 15px;'>
+            Welcome to Smriti
+        </div>
+        <div style='font-size: 15px; color: rgba(255,255,255,0.4);
+                    max-width: 380px; margin: 0 auto 40px auto; line-height: 1.8;'>
+            Preserve the voice, words and personality<br>
+            of someone you love — forever.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Upload section directly on main screen
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.markdown("""
+        <div style='background: rgba(124,111,247,0.08); border: 1px solid 
+                    rgba(124,111,247,0.3); border-radius: 20px; padding: 30px;
+                    text-align: center;'>
+            <div style='color: #7c6ff7; font-size: 16px; font-weight: 600;
+                        margin-bottom: 20px;'>
+                📱 Upload WhatsApp Chat to Begin
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        uploaded_file = st.file_uploader(
+            "Upload WhatsApp chat (.txt)",
+            type=['txt'],
+            label_visibility="collapsed"
+        )
+
+        person_name = st.text_input(
+            "Person's name (exactly as in WhatsApp)",
+            placeholder="e.g. Kinder Joy",
+        )
+
+        load_btn = st.button("🌸 Load Memories", use_container_width=True)
+
+        if load_btn and uploaded_file and person_name:
+            with st.spinner("Loading memories..."):
+                os.makedirs("data", exist_ok=True)
+                chat_path = f"data/{uploaded_file.name}"
+                with open(chat_path, 'wb') as f:
+                    f.write(uploaded_file.getbuffer())
+
+                df = parse_whatsapp_chat(chat_path, person_name)
+
+                if len(df) == 0:
+                    st.error(f"No messages found for '{person_name}'. Check the name!")
+                else:
+                    personality = extract_personality(df, person_name)
+                    profile = personality.copy()
+                    profile['top_words'] = dict(personality['top_words'])
+
+                    with open("data/personality_profile.json", 'w', encoding='utf-8') as f:
+                        json.dump(profile, f, ensure_ascii=False, indent=2)
+
+                    from sklearn.feature_extraction.text import TfidfVectorizer
+                    import pickle
+
+                    messages_list = df['message'].tolist()
+                    meaningful = [m for m in messages_list if len(m.split()) >= 3]
+
+                    vectorizer = TfidfVectorizer(max_features=5000)
+                    matrix = vectorizer.fit_transform(meaningful)
+
+                    os.makedirs("memory", exist_ok=True)
+                    with open("memory/messages.pkl", "wb") as f:
+                        pickle.dump(meaningful, f)
+                    with open("memory/vectorizer.pkl", "wb") as f:
+                        pickle.dump(vectorizer, f)
+                    with open("memory/matrix.pkl", "wb") as f:
+                        pickle.dump(matrix, f)
+
+                    collection = {
+                        "messages": meaningful,
+                        "vectorizer": vectorizer,
+                        "matrix": matrix
+                    }
+
+                    st.session_state.personality = profile
+                    st.session_state.collection = collection
+                    st.session_state.messages = []
+                    st.session_state.ready = True
+                    st.success(f"✅ {len(df)} memories loaded!")
+                    st.rerun()
+    st.markdown("""
     <div style='text-align:center; padding: 80px 20px;'>
         <div class='welcome-glow' style='font-size: 90px; margin-bottom: 25px;'>🌸</div>
         <div style='font-size: 36px; font-weight: 700;
