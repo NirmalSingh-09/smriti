@@ -2,8 +2,13 @@ from groq import Groq
 import json
 
 import os
-GROQ_API_KEY = os.environ.get("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", "")
+import streamlit as st
 
+try:
+    GROQ_API_KEY = st.secrets["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"]
+except:
+    GROQ_API_KEY = os.environ.get("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", "")
+    
 def setup_gemini():
     client = Groq(api_key=GROQ_API_KEY)
     return client
