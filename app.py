@@ -14,6 +14,7 @@ st.set_page_config(
     page_icon="🌸",
     layout="wide"
 )
+st.sidebar.markdown("## 🌸 Smriti")
 st.markdown("""
 <style>
     [data-testid="collapsedControl"] {
