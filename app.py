@@ -472,6 +472,71 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
+# Stats expander
+    with st.expander("🧠 View Personality Profile"):
+        p = st.session_state.personality
+        style = p.get('style', {})
+        emotion = p.get('dominant_emotion', 'unknown')
+        emoji_map = {
+            'humor': '😄', 'love': '❤️', 'advice': '🧠',
+            'worry': '🤗', 'pride': '⭐', 'spiritual': '🙏'
+        }
+
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.markdown(f"""
+            <div class="stat-card" style="text-align:center">
+                <div style='font-size:11px; color:#8888aa;'>Dominant Mood</div>
+                <div style='font-size:22px;'>{emoji_map.get(emotion,'💬')}</div>
+                <div style='font-size:14px; font-weight:700;'>{emotion.title()}</div>
+            </div>""", unsafe_allow_html=True)
+
+        with col2:
+            st.markdown(f"""
+            <div class="stat-card" style="text-align:center">
+                <div style='font-size:11px; color:#8888aa;'>Messages</div>
+                <div style='font-size:22px;'>💬</div>
+                <div style='font-size:14px; font-weight:700; color:#7c6ff7;'>
+                    {style.get('total_messages', 0):,}
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+        with col3:
+            st.markdown(f"""
+            <div class="stat-card" style="text-align:center">
+                <div style='font-size:11px; color:#8888aa;'>Avg Length</div>
+                <div style='font-size:22px;'>✍️</div>
+                <div style='font-size:14px; font-weight:700; color:#7c6ff7;'>
+                    {style.get('avg_message_length', 0)} words
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+        with col4:
+            st.markdown(f"""
+            <div class="stat-card" style="text-align:center">
+                <div style='font-size:11px; color:#8888aa;'>Language</div>
+                <div style='font-size:22px;'>🇮🇳</div>
+                <div style='font-size:14px; font-weight:700; color:#7c6ff7;'>
+                    {'Hinglish' if style.get('uses_hindi') else 'English'}
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+        # Top words
+        top_words = list(p.get('top_words', {}).keys())[:8]
+        if top_words:
+            st.markdown("<div style='color:#7c6ff7; margin-top:15px; font-weight:600;'>💬 Favourite Words</div>", unsafe_allow_html=True)
+            words_html = " ".join([
+                f"<span style='background:rgba(124,111,247,0.1); color:#7c6ff7; padding:4px 10px; border-radius:20px; font-size:12px; margin:2px; display:inline-block; border:1px solid rgba(124,111,247,0.3);'>{w}</span>"
+                for w in top_words
+            ])
+            st.markdown(words_html, unsafe_allow_html=True)
+
+        # Clear chat button
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🗑️ Clear Chat", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+
     if not st.session_state.messages:
         st.markdown(f"""
         <div style="text-align:center; color: rgba(124,111,247,0.4);
