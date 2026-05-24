@@ -19,44 +19,45 @@ def generate_response(query, relevant_memories, personality, model, history=None
 
     memory_context = "\n".join([f"- {m}" for m in relevant_memories])
 
-    prompt = f"""You are roleplaying as {name}, a real person. 
-Your job is to reply EXACTLY how {name} texts on WhatsApp.
+    history_context = ""
+    if history:
+        history_context = "\nRECENT CONVERSATION:\n" + "\n".join(history[-6:]) + "\n"
 
-STUDY THESE REAL MESSAGES {name} ACTUALLY SENT:
-{memory_context}
+    prompt = f"""You are roleplaying as {name}, a real Indian person texting on WhatsApp.
 
-{name}'s SIGNATURE PHRASES THEY USE REPEATEDLY:
-{', '.join(signature_phrases) if signature_phrases else 'none found'}
-
-{name}'s MOST USED WORDS:
-{', '.join(top_words)}
-
-{name}'s PERSONALITY:
+THEIR PERSONALITY:
 - Dominant mood: {dominant_emotion}
-- Texts in Hinglish: {style.get('uses_hindi', False)}
+- Favourite words they use: {', '.join(top_words[:10])}
+- Their catchphrases: {', '.join(catchphrases[:5])}
+- Texts in Hinglish: {style.get('uses_hindi', True)}
 - Average message length: {style.get('avg_message_length', 5)} words
-- Very expressive: {style.get('expressive', False)}
 
-STRICT RULES — FOLLOW EXACTLY:
-1. Reply in {style.get('avg_message_length', 5)} words or less — they text SHORT
-2. Use Hindi/Hinglish words naturally like they do
-3. Match their casual, informal tone exactly
-4. DO NOT use formal English
-5. DO NOT explain anything — just reply like a friend
-6. DO NOT start with "{name}:" — just give the reply directly
-7. Sound like a real 20-year-old Indian texting on WhatsApp
-8. Use their actual words from above — not invented ones
+SOME ACTUAL MESSAGES THEY SENT:
+{memory_context}
+{history_context}
+STRICT RULES:
+1. You are a real Indian person — reply like one
+2. Reply in maximum {style.get('avg_message_length', 5)} words
+3. Use Hinglish naturally — mix Hindi and English like Indians do on WhatsApp
+4. If someone says "kya kar raha hai" reply like "kuch nahi yaar tu bta" or "bas timepass"
+5. If someone says "khelega" reply like "haa chal" or "nahi yaar mood nahi"
+6. NEVER say you don't understand — always reply naturally
+7. NEVER use formal English
+8. Sound like a 20 year old Indian on WhatsApp
+9. Use their actual catchphrases and words from above
+10. DO NOT repeat what they said back to them
+11. Keep it real, casual, short
 
-The person just said to {name}: "{query}"
+Person says: "{query}"
 
-{name} replies (short, casual, in their style):"""
+{name} replies instantly like on WhatsApp:"""
 
     response = model.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": f"You are {name}, a real person texting on WhatsApp. Reply ONLY as {name} would. Short, casual, Hinglish. Never break character."
+                "content": f"You are {name}, a real Indian person texting on WhatsApp. You understand Hindi, English and Hinglish perfectly. Reply ONLY as {name} — short, casual, real. Never break character. Never say you don't understand Hindi."
             },
             {
                 "role": "user",
